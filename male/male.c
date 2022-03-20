@@ -133,14 +133,15 @@ int main()
     {
         coord_t *w = gen_coor(100 * i, dim);
         add(queue, w);
-        coord_t *f = gen_coor(101 * i, dim);
+        coord_t *f = gen_coor(100 * i+1, dim);
         add(queue, f);
-        coord_t *y = gen_coor(102 * i, dim);
+        coord_t *y = gen_coor(100 * i+2, dim);
         add(queue, y);
+        /*
         coord_t *e = pop(queue);
         print_coord(*e, dim);
         free(e->coord);
-        free(e);
+        free(e);*/
     }
         for (int i = 0; i < 77; i++)
     {
