@@ -14,7 +14,7 @@ typedef struct queue
     struct coord **array;
 } queue_t;
 
-queue_t *initialize_queue(size_t cap)
+queue_t *queue_initialize(size_t cap)
 {
     queue_t *queue = (queue_t *)malloc(sizeof(queue_t));
     queue->cap = cap;
@@ -24,7 +24,7 @@ queue_t *initialize_queue(size_t cap)
     return queue;
 }
 
-queue_t *resize_queue(queue_t *queue)
+queue_t *queue_resize(queue_t *queue)
 {
     coord_t **narr = (coord_t **)realloc(queue->array, (queue->cap + 2) * sizeof(coord_t *));
     if (narr == NULL)
@@ -45,21 +45,21 @@ queue_t *resize_queue(queue_t *queue)
     return queue;
 }
 
-bool isEmpty(queue_t *queue)
+bool is_empty(queue_t *queue)
 {
     return (queue->size == 0);
 }
 
-bool isFull(queue_t *queue)
+bool is_full(queue_t *queue)
 {
     return (queue->size == queue->cap);
 }
 
 queue_t *add(queue_t *queue, coord_t *item)
 {
-    if (isFull(queue))
+    if (is_full(queue))
     {
-        queue_t *nqueue = resize_queue(queue);
+        queue_t *nqueue = queue_resize(queue);
         if (nqueue == NULL)
         {
             return NULL;
@@ -77,7 +77,7 @@ queue_t *add(queue_t *queue, coord_t *item)
 
 coord_t *pop(queue_t *queue)
 {
-    if (isEmpty(queue))
+    if (is_empty(queue))
     {
         return NULL;
     }
@@ -128,7 +128,7 @@ coord_t *gen_coor(size_t dupa, size_t dim)
 int main()
 {
     size_t dim = 6;
-    queue_t *queue = initialize_queue(3);
+    queue_t *queue = queue_initialize(3);
     for (int i = 0; i < 777; i++)
     {
         coord_t *w = gen_coor(100 * i, dim);
