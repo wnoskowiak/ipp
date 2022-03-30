@@ -4,13 +4,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "bitarray.h"
 
 /*
 zwykły bfs działa, ale trzeba nie spierdolić
 labirynt można trzymać jako tablice intów
 */
 
-void printBits(size_t const size, void const * const ptr)
+static void printBits(size_t const size, void const * const ptr)
 {
     unsigned char *b = (unsigned char*) ptr;
     unsigned char byte;
