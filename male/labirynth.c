@@ -1,9 +1,12 @@
-#include <string.h>
+#define _XOPEN_SOURCE 700
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <limits.h>
+#include <stdint.h>
+#include <string.h>
 #include "queue.h"
+#include "bitarray.h"
 
 typedef struct coord
 {
@@ -23,6 +26,42 @@ typedef struct array_with_length
     size_t length;
 } array_with_length_t;
 
+void parce_R(char *token)
+{
+    const char s[2] = " ";
+    unsigned int res[5];
+    int i;
+    if (token++ != NULL)
+    {
+        sscanf(token, "%u", &res[0]);
+        i = 1;
+    }
+    else
+    {
+        i = 0;
+    }
+    token = strtok(NULL, s);
+    while (token != NULL)
+    {
+        sscanf(token, "%u", &res[i]);
+        i++;
+        token = strtok(NULL, s);
+    }
+    if (i < 5)
+    {
+        fwrite("ERROR 4\n", 8, 1, stderr);
+        exit(EXIT_FAILURE);
+    }
+    // return res;
+}
+
+void parce_hex(char *token)
+{
+    printf("%s\n", token);
+    size_t number = strtoul(token, NULL, 16);
+    printf("%zu\n", number);
+}
+
 array_with_length_t *line_to_array(char *str)
 {
     const char s[2] = " ";
@@ -39,21 +78,26 @@ array_with_length_t *line_to_array(char *str)
         add(dupa, a);
         token = strtok(NULL, s);
     }
-    array_with_length_t* res = (array_with_length_t*)malloc(sizeof(array_with_length_t));
+    array_with_length_t *res = (array_with_length_t *)malloc(sizeof(array_with_length_t));
     res->length = dupa->size;
     res->array = (size_t *)calloc(res->length, sizeof(size_t));
     for (size_t i = 0; i < res->length; i++)
     {
         coord_t *fuck = pop(dupa);
-        res->array[i] = *(fuck->coord);
-        free(fuck->coord);
-        free(fuck);
+        if (*(fuck->coord) == (size_t)0)
+        {
+            printf("ebe\n");
+            fwrite("ERROR 9\n", 8, 1, stderr);
+            exit(EXIT_FAILURE);
+        }
+        else
+        {
+            res->array[i] = *(fuck->coord);
+            free(fuck->coord);
+            free(fuck);
+        }
     }
-    // for (size_t i = 0; i < res->length; i++)
-    // {
-    //     printf("%zu\n", res->array[i]);
-    // }
-    // queue_destroy(dupa);
+    queue_destroy(dupa);
     return res;
 }
 
@@ -61,18 +105,108 @@ int main()
 {
     char *line = NULL;
     size_t len = 0;
-    ssize_t read;
-    while ((read = getline(&line, &len, stdin)) != -1) {
-        printf("Retrieved line of length %zu :\n", read);
-        printf("%s", line);
-    }
-    
-    //char str[5375] = "0000018446744073709551615     018446744073709551606        0000000000000000000000000000000000000000000000000000000000000000000000018 18446744073709551534 00018446744073709551499 0000018446744073709551521";
-    array_with_length_t *ubuntu = line_to_array(line);
-        for(size_t i = 0; i< ubuntu->length; i++)
+    size_t read;
+    if ((fseek(stdin, 0, SEEK_END), ftell(stdin)) > 0)
     {
-        printf("%zu\n",ubuntu->array[i]);
+        rewind(stdin);
+        // wczytaj wymiar labiryntu
+        read = getline(&line, &len, stdin);
+        if ((int)read == -1)
+        {
+            fwrite("ERROR 1\n", 8, 1, stderr);
+            exit(EXIT_FAILURE);
+        }
+        array_with_length_t *dimentions = line_to_array(line);
+        // wczytaj wejście do labiryntu
+        read = getline(&line, &len, stdin);
+        if ((int)read == -1)
+        {
+            fwrite("ERROR 2\n", 8, 1, stderr);
+            exit(EXIT_FAILURE);
+        }
+        array_with_length_t *entry = line_to_array(line);
+        if (entry->length != dimentions->length)
+        {
+            fwrite("ERROR 2\n", 8, 1, stderr);
+            exit(EXIT_FAILURE);
+        }
+        // wczytaj wyjście z labiryntu
+        read = getline(&line, &len, stdin);
+        if ((int)read == -1)
+        {
+            fwrite("ERROR 3\n", 8, 1, stderr);
+            exit(EXIT_FAILURE);
+        }
+        array_with_length_t *ext = line_to_array(line);
+        if (ext->length != entry->length)
+        {
+            fwrite("ERROR 3\n", 8, 1, stderr);
+            exit(EXIT_FAILURE);
+        }
+        for (size_t i = 0; i < dimentions->length; i++)
+        {
+            printf("%zu\n", dimentions->array[i]);
+            printf("%zu\n", entry->array[i]);
+            printf("%zu\n", ext->array[i]);
+        }
+        free(ext->array);
+        free(ext);
+        free(dimentions->array);
+        free(dimentions);
+        free(entry->array);
+        free(entry);
+        // wczytywanie czwartej linii
+        read = getline(&line, &len, stdin);
+        if ((int)read == -1)
+        {
+            fwrite("ERROR 4\n", 8, 1, stderr);
+            exit(EXIT_FAILURE);
+        }
+        const char s[2] = " ";
+        char *token;
+        token = strtok(line, s);
+        if (token[0] == 'R')
+        {
+            parce_R(token);
+        }
+        else if (token[0] == '0')
+        {
+            if (token++ != NULL)
+            {
+                if (token[0] == 'x')
+                {
+                    token++;
+                    parce_hex(token);
+                }
+                else
+                {
+                    printf("chuj\n");
+                    fwrite("ERROR 4\n", 8, 1, stderr);
+                    exit(EXIT_FAILURE);
+                }
+            }
+            else
+            {
+                fwrite("ERROR 4\n", 8, 1, stderr);
+                exit(EXIT_FAILURE);
+            }
+        }
+        else
+        {
+            fwrite("ERROR 4\n", 8, 1, stderr);
+            exit(EXIT_FAILURE);
+        }
+        read = getline(&line, &len, stdin);
+        if((int)read != -1){
+            fwrite("ERROR 5\n", 8, 1, stderr);
+            exit(EXIT_FAILURE);
+        }
+    }
+    else
+    {
+        fwrite("ERROR 1\n", 8, 1, stderr);
+        exit(EXIT_FAILURE);
     }
     free(line);
-    return 0;
+    return 1;
 }

@@ -136,43 +136,43 @@ signed char get(arr_t *array, size_t *coords)
 	return (signed char)bol_value;
 }
 
-int main()
-{
-	size_t dimnum= 4;
-	size_t *dupa = (size_t *)calloc(dimnum, sizeof(size_t));
-	for (size_t i = 0; i < dimnum; i++)
-	{
-		dupa[i] = 7+i;
-	}
-	for (size_t i = 0; i < dimnum; i++)
-	{
-		printf("%ld\n", dupa[i]);
-	}
+// int main()
+// {
+// 	size_t dimnum= 4;
+// 	size_t *dupa = (size_t *)calloc(dimnum, sizeof(size_t));
+// 	for (size_t i = 0; i < dimnum; i++)
+// 	{
+// 		dupa[i] = 7+i;
+// 	}
+// 	for (size_t i = 0; i < dimnum; i++)
+// 	{
+// 		printf("%ld\n", dupa[i]);
+// 	}
 	
-	arr_t *arrayplzwork = initialize_array(dupa,dimnum);
-	size_t *coord2 = (size_t *)calloc(dimnum, sizeof(size_t));
-	coord2[0] = 0;
+// 	arr_t *arrayplzwork = initialize_array(dupa,dimnum);
+// 	size_t *coord2 = (size_t *)calloc(dimnum, sizeof(size_t));
+// 	coord2[0] = 0;
 	
-	for (size_t i = 0; i < dimnum; i++)
-	{
-		coord2[i] = 5+i;
-	}
-	printf("%i\n", get(arrayplzwork, coord2));
-	put(arrayplzwork, coord2);
-	printf("%i\n", get(arrayplzwork, coord2));
-	coord2[0] += -1;
-	printf("%i\n", get(arrayplzwork, coord2));
-	put(arrayplzwork, coord2);
-	printf("%i\n", get(arrayplzwork, coord2));
-	for (size_t i = 0; i < dimnum; i++)
-	{
-		coord2[i] = 7+i+2;
-	}
-	printf("%i\n", get(arrayplzwork, coord2));
-	put(arrayplzwork, coord2);
-	printf("%i\n", get(arrayplzwork, coord2));
-	free(coord2);
-	free(dupa);
-	destroy_array(arrayplzwork);
-	return 0;
-}
+// 	for (size_t i = 0; i < dimnum; i++)
+// 	{
+// 		coord2[i] = 5+i;
+// 	}
+// 	printf("%i\n", get(arrayplzwork, coord2));
+// 	put(arrayplzwork, coord2);
+// 	printf("%i\n", get(arrayplzwork, coord2));
+// 	coord2[0] += -1;
+// 	printf("%i\n", get(arrayplzwork, coord2));
+// 	put(arrayplzwork, coord2);
+// 	printf("%i\n", get(arrayplzwork, coord2));
+// 	for (size_t i = 0; i < dimnum; i++)
+// 	{
+// 		coord2[i] = 7+i+2;
+// 	}
+// 	printf("%i\n", get(arrayplzwork, coord2));
+// 	put(arrayplzwork, coord2);
+// 	printf("%i\n", get(arrayplzwork, coord2));
+// 	free(coord2);
+// 	free(dupa);
+// 	destroy_array(arrayplzwork);
+// 	return 0;
+// }
