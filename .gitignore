@@ -4,3 +4,6 @@ lab/sort
 lab/sort2
 .vscode
 male/male
+male/*.o 
+male/labirynth
+male/jebanie.in
