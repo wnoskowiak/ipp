@@ -45,7 +45,13 @@ typedef struct indx
 	size_t rem;
 } indx_t;
 
-arr_t *initialize_array(size_t *dimentions, size_t dimnum)
+typedef struct array_with_length
+{
+    size_t *array;
+    size_t length;
+} array_with_length_t;
+
+arr_t *initialize_array(array_with_length_t* dimention_definitions)
 {
 	arr_t *res = (arr_t *)malloc(sizeof(arr_t));
 	if (!res)
@@ -58,14 +64,15 @@ arr_t *initialize_array(size_t *dimentions, size_t dimnum)
 		free(res);
 		return NULL;
 	}
-	res->settings->dimmaxes = dimentions;
-	res->settings->dimnum = dimnum;
+	res->settings->dimmaxes = dimention_definitions->array;
+	res->settings->dimnum = dimention_definitions->length;
 	res->settings->mx = (size_t)((log((SIZE_MAX >> 1) + 1) / log(2)) + 1);
 	size_t temp = 1;
 	for (size_t i = 0; i < (res->settings->dimnum); i++)
 	{
 		temp = temp * ((res->settings->dimmaxes)[i]);
 	}
+	temp++;
 	temp = ((size_t)(temp / res->settings->mx) + 1);
 	res->array = (size_t *)calloc(temp, sizeof(size_t));
 	if (!res->array)
@@ -88,13 +95,13 @@ indx_t *to_internal_type(arr_t *array, size_t *coords)
 	size_t pom = 0;
 	for (int i = array->settings->dimnum - 1; i > 0; i--)
 	{
-		if (coords[i] > array->settings->dimmaxes[i])
+		if ((coords[i]) > array->settings->dimmaxes[i])
 		{
 			return NULL;
 		}
-		pom = (pom + coords[i]) * array->settings->dimmaxes[i - 1];
+		pom = (pom + coords[i] -1) * array->settings->dimmaxes[i - 1];
 	}
-	pom = pom + coords[0];
+	pom = pom + coords[0] - 1;
 	indx_t *res = (indx_t *)malloc(sizeof(indx_t));
 	res->cell = pom / array->settings->mx;
 	res->rem = pom % array->settings->mx;
@@ -103,7 +110,7 @@ indx_t *to_internal_type(arr_t *array, size_t *coords)
 
 void put_in_array(arr_t *array, indx_t *index)
 {
-	array->array[index->cell] = array->array[index->cell] | ((size_t)1 << (index->rem));
+	array->array[index->cell] = array->array[index->cell] | ((size_t)1 << (index->rem ));
 }
 
 bool put(arr_t *array, size_t *coords)
@@ -121,7 +128,9 @@ bool put(arr_t *array, size_t *coords)
 bool get_from_array(arr_t *array, indx_t *index)
 {
 	printBits(sizeof(array->array[index->cell]),&array->array[index->cell]);
-	return((array->array[index->cell] & ((size_t)1 << (index->rem))) != 0);
+	size_t sranie = ((size_t)1 << (index->rem));
+	printBits(sizeof(sranie),&sranie);
+	return((array->array[index->cell] & ((size_t)1 << (index->rem))));
 }
 
 signed char get(arr_t *array, size_t *coords)
@@ -135,44 +144,3 @@ signed char get(arr_t *array, size_t *coords)
 	free(tmp);
 	return (signed char)bol_value;
 }
-
-// int main()
-// {
-// 	size_t dimnum= 4;
-// 	size_t *dupa = (size_t *)calloc(dimnum, sizeof(size_t));
-// 	for (size_t i = 0; i < dimnum; i++)
-// 	{
-// 		dupa[i] = 7+i;
-// 	}
-// 	for (size_t i = 0; i < dimnum; i++)
-// 	{
-// 		printf("%ld\n", dupa[i]);
-// 	}
-	
-// 	arr_t *arrayplzwork = initialize_array(dupa,dimnum);
-// 	size_t *coord2 = (size_t *)calloc(dimnum, sizeof(size_t));
-// 	coord2[0] = 0;
-	
-// 	for (size_t i = 0; i < dimnum; i++)
-// 	{
-// 		coord2[i] = 5+i;
-// 	}
-// 	printf("%i\n", get(arrayplzwork, coord2));
-// 	put(arrayplzwork, coord2);
-// 	printf("%i\n", get(arrayplzwork, coord2));
-// 	coord2[0] += -1;
-// 	printf("%i\n", get(arrayplzwork, coord2));
-// 	put(arrayplzwork, coord2);
-// 	printf("%i\n", get(arrayplzwork, coord2));
-// 	for (size_t i = 0; i < dimnum; i++)
-// 	{
-// 		coord2[i] = 7+i+2;
-// 	}
-// 	printf("%i\n", get(arrayplzwork, coord2));
-// 	put(arrayplzwork, coord2);
-// 	printf("%i\n", get(arrayplzwork, coord2));
-// 	free(coord2);
-// 	free(dupa);
-// 	destroy_array(arrayplzwork);
-// 	return 0;
-// }

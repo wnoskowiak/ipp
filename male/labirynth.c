@@ -8,6 +8,27 @@
 #include "queue.h"
 #include "bitarray.h"
 
+static void printBits(size_t const size, void const * const ptr)
+{
+    unsigned char *b = (unsigned char*) ptr;
+    unsigned char byte;
+    int i, j;
+    
+    for (i = size-1; i >= 0; i--) {
+        for (j = 7; j >= 0; j--) {
+            byte = (b[i] >> j) & 1;
+            printf("%u", byte);
+        }
+    }
+    puts("");
+}
+
+typedef struct indx
+{
+    size_t cell;
+    size_t rem;
+} indx_t;
+
 typedef struct coord
 {
     size_t len;
@@ -26,38 +47,127 @@ typedef struct array_with_length
     size_t length;
 } array_with_length_t;
 
-void parce_R(char *token)
+typedef struct settings
 {
-    const char s[2] = " ";
-    unsigned int res[5];
+    size_t *dimmaxes;
+    size_t dimnum;
+    size_t mx;
+} settings_t;
+
+typedef struct arr
+{
+    settings_t *settings;
+    size_t *array;
+} arr_t;
+
+void fail(int i)
+{
+    fprintf(stderr, "ERROR %i\n", i);
+    exit(EXIT_FAILURE);
+}
+
+void free_array(array_with_length_t *obj)
+{
+    free(obj->array);
+    free(obj);
+}
+
+bool compare_coords(array_with_length_t a, array_with_length_t b)
+{
+    printf("here\n");
+    bool res = true;
+    for(int i =0; i<a.length; i++){
+        printf("here\n");
+        if((a.array)[i]!= (b.array)[i])
+        {
+            res = false;
+            break;
+        }
+    }
+    return res;
+}
+
+size_t get_labirynth_size(array_with_length_t *dimentions)
+{
+    size_t res = 1;
+    for (size_t i = 0; i < dimentions->length; i++)
+    {
+        if (SIZE_MAX / dimentions->array[i] > res)
+        {
+            res = res * dimentions->array[i];
+        }
+        else
+        {
+            fail(0);
+        }
+    }
+    return res;
+}
+
+arr_t * parce_R(char *token, array_with_length_t *dimentions)
+{
+    const char sep[2] = " ";
+    long unsigned int res[5];
     int i;
     if (token++ != NULL)
     {
-        sscanf(token, "%u", &res[0]);
+        sscanf(token, "%lu", &res[0]);
         i = 1;
     }
     else
     {
         i = 0;
     }
-    token = strtok(NULL, s);
+    token = strtok(NULL, sep);
     while (token != NULL)
     {
-        sscanf(token, "%u", &res[i]);
+        sscanf(token, "%lu", &res[i]);
         i++;
-        token = strtok(NULL, s);
+        token = strtok(NULL, sep);
     }
     if (i < 5)
     {
-        fwrite("ERROR 4\n", 8, 1, stderr);
-        exit(EXIT_FAILURE);
+        fail(4);
     }
-    // return res;
+    long unsigned int w[res[3]];
+    w[0] = res[4];
+    for (long unsigned int i = 1; i <= res[3]; i++)
+    {
+        w[i] = (res[0] * w[i - 1] + res[1]) % res[2];
+    }
+    size_t size = get_labirynth_size(dimentions);
+    for (long unsigned int i = 0; i <= res[3]; i++)
+    {
+        w[i] = w[i] % size;
+    }
+    arr_t *walls = initialize_array(dimentions);
+    long unsigned int temp;
+    for (size_t i = 0; i < size; i++)
+    {
+        temp = (long unsigned int)(i % ((size_t)1 << 32));
+        bool filled = false;
+        for (long unsigned int j = 0; j <= res[3]; j++)
+        {
+            if (w[j] == temp)
+            {
+                filled = true;
+                break;
+            }
+        }
+        if (filled)
+        {
+            indx_t index;
+            index.cell = (i)/(walls->settings->mx);
+            index.rem = (i)%(walls->settings->mx);
+
+            put_in_array(walls, &index);
+        }
+    }
+    return walls;
 }
 
 void parce_hex(char *token)
 {
-    printf("%s\n", token);
     size_t number = strtoul(token, NULL, 16);
     printf("%zu\n", number);
 }
@@ -103,6 +213,25 @@ array_with_length_t *line_to_array(char *str)
 
 int main()
 {
+//playground
+size_t* aa = (size_t*)calloc(3,sizeof(size_t));
+aa[0] = 2;
+aa[1] = 2;
+aa[2] = 2;
+size_t* bb = (size_t*)calloc(3,sizeof(size_t));
+bb[0] = 2;
+bb[1] = 2;
+bb[2] = 2;
+array_with_length_t a,b;
+a.length = 3;
+b.length = 3;
+a.array = aa;
+a.array = bb;
+printf(compare_coords(a,b)? "true\n" : "false\n");
+
+//
+
+
     char *line = NULL;
     size_t len = 0;
     size_t read;
@@ -113,61 +242,62 @@ int main()
         read = getline(&line, &len, stdin);
         if ((int)read == -1)
         {
-            fwrite("ERROR 1\n", 8, 1, stderr);
-            exit(EXIT_FAILURE);
+            free(line);
+            fail(1);
         }
         array_with_length_t *dimentions = line_to_array(line);
+        arr_t *visited = initialize_array(dimentions);
+        destroy_array(visited);
         // wczytaj wejście do labiryntu
         read = getline(&line, &len, stdin);
         if ((int)read == -1)
         {
-            fwrite("ERROR 2\n", 8, 1, stderr);
-            exit(EXIT_FAILURE);
+            free(line);
+            free_array(dimentions);
+            fail(2);
         }
         array_with_length_t *entry = line_to_array(line);
         if (entry->length != dimentions->length)
         {
-            fwrite("ERROR 2\n", 8, 1, stderr);
-            exit(EXIT_FAILURE);
+            free(line);
+            free_array(entry);
+            free_array(dimentions);
+            fail(2);
         }
         // wczytaj wyjście z labiryntu
         read = getline(&line, &len, stdin);
         if ((int)read == -1)
         {
-            fwrite("ERROR 3\n", 8, 1, stderr);
-            exit(EXIT_FAILURE);
+            free(line);
+            free_array(entry);
+            free_array(dimentions);
+            fail(3);
         }
         array_with_length_t *ext = line_to_array(line);
         if (ext->length != entry->length)
         {
-            fwrite("ERROR 3\n", 8, 1, stderr);
-            exit(EXIT_FAILURE);
+            free(line);
+            free_array(entry);
+            free_array(dimentions);
+            free_array(ext);
+            fail(3);
         }
-        for (size_t i = 0; i < dimentions->length; i++)
-        {
-            printf("%zu\n", dimentions->array[i]);
-            printf("%zu\n", entry->array[i]);
-            printf("%zu\n", ext->array[i]);
-        }
-        free(ext->array);
-        free(ext);
-        free(dimentions->array);
-        free(dimentions);
-        free(entry->array);
-        free(entry);
-        // wczytywanie czwartej linii
+        free_array(entry);
+        free_array(ext);
+        //  wczytywanie ścian
+        arr_t* walls;
         read = getline(&line, &len, stdin);
         if ((int)read == -1)
         {
-            fwrite("ERROR 4\n", 8, 1, stderr);
-            exit(EXIT_FAILURE);
+            free(line);
+            fail(4);
         }
         const char s[2] = " ";
         char *token;
         token = strtok(line, s);
         if (token[0] == 'R')
         {
-            parce_R(token);
+            walls = parce_R(token, dimentions);
         }
         else if (token[0] == '0')
         {
@@ -180,32 +310,33 @@ int main()
                 }
                 else
                 {
-                    printf("chuj\n");
-                    fwrite("ERROR 4\n", 8, 1, stderr);
-                    exit(EXIT_FAILURE);
+                    free(line);
+                    fail(4);
                 }
             }
             else
             {
-                fwrite("ERROR 4\n", 8, 1, stderr);
-                exit(EXIT_FAILURE);
+                free(line);
+                fail(4);
             }
         }
         else
         {
-            fwrite("ERROR 4\n", 8, 1, stderr);
-            exit(EXIT_FAILURE);
+            free(line);
+            fail(4);
         }
+        free_array(dimentions);
         read = getline(&line, &len, stdin);
-        if((int)read != -1){
-            fwrite("ERROR 5\n", 8, 1, stderr);
-            exit(EXIT_FAILURE);
+        if ((int)read != -1)
+        {
+            free(line);
+            fail(5);
         }
     }
     else
     {
-        fwrite("ERROR 1\n", 8, 1, stderr);
-        exit(EXIT_FAILURE);
+        free(line);
+        fail(1);
     }
     free(line);
     return 1;

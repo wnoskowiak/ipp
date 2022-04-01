@@ -19,7 +19,9 @@ typedef struct arr arr_t;
 
 typedef struct indx indx_t;
 
-arr_t *initialize_array(size_t *dimentions, size_t dimnum);
+typedef struct array_with_length array_with_length_t;
+
+arr_t *initialize_array(array_with_length_t* dimention_definitions);
 
 void destroy_array(arr_t *array);
 
@@ -28,3 +30,5 @@ indx_t *to_internal_type(arr_t *array, size_t *coords);
 bool put(arr_t *array, size_t *coords);
 
 signed char get(arr_t *array, size_t *coords);
+
+void put_in_array(arr_t *array, indx_t *index);
