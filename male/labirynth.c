@@ -316,6 +316,7 @@ int main()
         signed char is_wall = get(walls, entry->array);
         if (is_wall == -1)
         {
+            queue_destroy(queue);
             free(line);
             free_array(entry);
             free_array(dimentions);
@@ -335,6 +336,7 @@ int main()
                 free_array(ext);
                 destroy_array(visited);
                 destroy_array(walls);
+                queue_destroy(queue);
                 fail(0);
             }
             initial->len = 0;
@@ -354,7 +356,14 @@ int main()
         }
         else
         {
-            free(entry->array);
+            free(line);
+            free_array(dimentions);
+            free_array(ext);
+            destroy_array(visited);
+            destroy_array(walls);
+            free_array(entry);
+            queue_destroy(queue);
+            fail(1);
         }
         bool done = false;
         while (!is_empty(queue))

@@ -90,6 +90,7 @@ arr_t *parce_R(char *token, array_with_length_t *dimentions, bool *memfail)
     if (!walls)
     {
         *memfail = true;
+        free(size);
         free(w);
         return NULL;
     }
@@ -115,6 +116,7 @@ arr_t *parce_R(char *token, array_with_length_t *dimentions, bool *memfail)
             put_in_array(walls, &index);
         }
     }
+    free(size);
     free(w);
     return walls;
 }
@@ -147,6 +149,7 @@ arr_t *parce_hex(char *token, array_with_length_t *dimentions, bool *memfail)
     arr_t *walls = initialize_array(dimentions);
     if (!walls)
     {
+        free(size);
         *memfail = true;
         return NULL;
     }
@@ -161,6 +164,7 @@ arr_t *parce_hex(char *token, array_with_length_t *dimentions, bool *memfail)
         }
         number = number / 2;
     }
+    free(size);
     return walls;
 }
 
