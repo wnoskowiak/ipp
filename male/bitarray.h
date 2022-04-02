@@ -11,7 +11,8 @@ zwykły bfs działa, ale trzeba nie spierdolić
 labirynt można trzymać jako tablice intów
 */
 
-
+#ifndef BITARRAY_H_
+#define BITARRAY_H_
 
 typedef struct settings settings_t;
 
@@ -32,3 +33,5 @@ bool put(arr_t *array, size_t *coords);
 signed char get(arr_t *array, size_t *coords);
 
 void put_in_array(arr_t *array, indx_t *index);
+
+#endif

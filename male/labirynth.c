@@ -8,43 +8,7 @@
 #include <errno.h>
 #include "queue.h"
 #include "bitarray.h"
-
-typedef struct indx
-{
-    size_t cell;
-    size_t rem;
-} indx_t;
-
-typedef struct array_with_length
-{
-    size_t *array;
-    size_t length;
-} array_with_length_t;
-
-typedef struct coord
-{
-    size_t len;
-    array_with_length_t coord;
-} coord_t;
-
-typedef struct queue
-{
-    size_t front, back, cap, size;
-    struct coord **array;
-} queue_t;
-
-typedef struct settings
-{
-    size_t *dimmaxes;
-    size_t dimnum;
-    size_t mx;
-} settings_t;
-
-typedef struct arr
-{
-    settings_t *settings;
-    size_t *array;
-} arr_t;
+#include "types.h"
 
 void fail(int i)
 {
@@ -72,24 +36,30 @@ bool compare_coords(array_with_length_t a, array_with_length_t b)
     return res;
 }
 
-size_t get_labirynth_size(array_with_length_t *dimentions)
+size_t *get_labirynth_size(array_with_length_t *dimentions)
 {
-    size_t res = 1;
+    size_t *res = (size_t *)malloc(sizeof(size_t));
+    if (!res)
+    {
+        return NULL;
+    }
+    *res = 1;
     for (size_t i = 0; i < dimentions->length; i++)
     {
-        if (SIZE_MAX / dimentions->array[i] > res)
+        if (SIZE_MAX / dimentions->array[i] > *res)
         {
-            res = res * dimentions->array[i];
+            *res = *res * dimentions->array[i];
         }
         else
         {
-            fail(0);
+            free(res);
+            return NULL;
         }
     }
     return res;
 }
 
-arr_t *parce_R(char *token, array_with_length_t *dimentions, bool* memfail)
+arr_t *parce_R(char *token, array_with_length_t *dimentions, bool *memfail)
 {
     long unsigned int res[5];
     int i;
@@ -121,7 +91,7 @@ arr_t *parce_R(char *token, array_with_length_t *dimentions, bool* memfail)
         return NULL;
     }
     long unsigned int *w = (long unsigned int *)calloc(res[3] + 1, sizeof(long unsigned int));
-    if (w == NULL)
+    if (!w)
     {
         *memfail = true;
         return NULL;
@@ -131,13 +101,25 @@ arr_t *parce_R(char *token, array_with_length_t *dimentions, bool* memfail)
     {
         w[i] = (res[0] * w[i - 1] + res[1]) % res[2];
     }
-    size_t size = get_labirynth_size(dimentions);
-    //tu dopisać free
+    size_t *size = get_labirynth_size(dimentions);
+    if (!size)
+    {
+        free(w);
+        *memfail = true;
+        return NULL;
+    }
+    // tu dopisać free
     for (long unsigned int i = 0; i <= res[3]; i++)
     {
-        w[i] = w[i] % size;
+        w[i] = w[i] % *size;
     }
     arr_t *walls = initialize_array(dimentions);
+    if (!walls)
+    {
+        *memfail = true;
+        free(w);
+        return NULL;
+    }
     long unsigned int temp;
     for (size_t i = 0; i < size; i++)
     {
@@ -164,7 +146,7 @@ arr_t *parce_R(char *token, array_with_length_t *dimentions, bool* memfail)
     return walls;
 }
 
-arr_t *parce_hex(char *token, array_with_length_t *dimentions)
+arr_t *parce_hex(char *token, array_with_length_t *dimentions, bool *memfail)
 {
     errno = 0;
     char *temp = token;
@@ -172,20 +154,30 @@ arr_t *parce_hex(char *token, array_with_length_t *dimentions)
 
     if (errno != 0)
     {
-        fail(4);
+        return NULL;
     }
     else if (number == 0)
     {
         unsigned long long safety = strtoull(&temp[2], NULL, 16);
         if (safety != 0)
         {
-            fail(4);
+            return NULL;
         }
     }
-    size_t size = get_labirynth_size(dimentions);
+    size_t *size = get_labirynth_size(dimentions);
+    if (!size)
+    {
+        *memfail = true;
+        return NULL;
+    }
     size_t bit_num = (size_t)((log((ULLONG_MAX >> 1) + 1) / log(2)) + 1);
     arr_t *walls = initialize_array(dimentions);
-    for (size_t i = 0; i < bit_num && i < size && number > 0; i++)
+    if (!walls)
+    {
+        *memfail = true;
+        return NULL;
+    }
+    for (size_t i = 0; i < bit_num && i < *size && number > 0; i++)
     {
         if (number % 2 == 1)
         {
@@ -202,7 +194,7 @@ arr_t *parce_hex(char *token, array_with_length_t *dimentions)
 array_with_length_t *line_to_array(char *str, int line_number, bool *memfail)
 {
     char *token;
-    token = strtok(str," \n\t");
+    token = strtok(str, " \n\t");
     queue_t *dupa = queue_initialize(1);
     if (!dupa)
     {
@@ -230,7 +222,7 @@ array_with_length_t *line_to_array(char *str, int line_number, bool *memfail)
         }
         *(a->coord.array) = len;
         dupa = add(dupa, a);
-        token = strtok(NULL," \n\t");
+        token = strtok(NULL, " \n\t");
     }
     array_with_length_t *res = (array_with_length_t *)malloc(sizeof(array_with_length_t));
     if (!res)
@@ -304,7 +296,15 @@ queue_t *add_neighbours(queue_t *queue, arr_t *wall, arr_t *visited, array_with_
             nelem->len = dist;
             nelem->coord.length = coord->length;
             nelem->coord.array = new;
-            if (new[i] <= visited->settings->dimmaxes[i] && new[i] > 0 && !get(wall, new) && !get(visited, new))
+            signed char is_wall = get(wall, new);
+            signed char is_visited = get(visited, new);
+            if (is_wall == -1 || is_visited == -1)
+            {
+                free(new);
+                free(nelem);
+                return NULL;
+            }
+            if (new[i] <= visited->settings->dimmaxes[i] && new[i] > 0 && !is_wall && !is_visited)
             {
                 queue = add(queue, nelem);
             }
@@ -440,7 +440,24 @@ int main()
         token = strtok(line, s);
         if (token[0] == 'R')
         {
-            walls = parce_R(token, dimentions);
+            memfail = false;
+            walls = parce_R(token, dimentions, &memfail);
+            if (!walls)
+            {
+                free(line);
+                free_array(entry);
+                free_array(dimentions);
+                free_array(ext);
+                destroy_array(visited);
+                if (memfail)
+                {
+                    fail(0);
+                }
+                else
+                {
+                    fail(4);
+                }
+            }
         }
         else if (token[0] == '0')
         {
@@ -448,7 +465,24 @@ int main()
             {
                 if (token[1] == 'x')
                 {
-                    walls = parce_hex(token, dimentions);
+                    memfail = false;
+                    walls = parce_hex(token, dimentions, &memfail);
+                    if (!walls)
+                    {
+                        free(line);
+                        free_array(entry);
+                        free_array(dimentions);
+                        free_array(ext);
+                        destroy_array(visited);
+                        if (memfail)
+                        {
+                            fail(0);
+                        }
+                        else
+                        {
+                            fail(4);
+                        }
+                    }
                 }
                 else
                 {
@@ -487,18 +521,61 @@ int main()
             free_array(dimentions);
             free_array(ext);
             destroy_array(visited);
+            destroy_array(walls);
             fail(5);
         }
 
         // jeśli program dotrze tu to znaczy że dane są poprawnie wpisane. teraz pora na zaaplikowanie bfsa
 
-        queue_t *queue = queue_initialize(7); // zmienić to kurwa potem
-        if (!get(walls, entry->array))
+        queue_t *queue = queue_initialize(10);
+        if (!queue)
+        {
+            free(line);
+            free_array(entry);
+            free_array(dimentions);
+            free_array(ext);
+            destroy_array(visited);
+            destroy_array(walls);
+            fail(0);
+        }
+        signed char is_wall = get(walls, entry->array);
+        if (is_wall == -1)
+        {
+            free(line);
+            free_array(entry);
+            free_array(dimentions);
+            free_array(ext);
+            destroy_array(visited);
+            destroy_array(walls);
+            fail(0);
+        }
+        if (!is_wall)
         {
             coord_t *initial = (coord_t *)malloc(sizeof(coord_t));
+            if (!initial)
+            {
+                free(line);
+                free_array(entry);
+                free_array(dimentions);
+                free_array(ext);
+                destroy_array(visited);
+                destroy_array(walls);
+                fail(0);
+            }
             initial->len = 0;
             initial->coord = *(entry);
             queue = add(queue, initial);
+            if (!queue)
+            {
+                free(line);
+                free_array(dimentions);
+                free_array(ext);
+                destroy_array(visited);
+                destroy_array(walls);
+                free(initial);
+                free(entry);
+                fail(0);
+            }
         }
         else
         {
@@ -510,7 +587,7 @@ int main()
             coord_t *suspect = pop(queue);
             if (compare_coords(suspect->coord, *ext))
             {
-                fprintf(stdout,"%zu\n", suspect->len);
+                fprintf(stdout, "%zu\n", suspect->len);
                 done = true;
             }
             else
@@ -540,7 +617,7 @@ int main()
         }
         if (!done)
         {
-            fprintf(stdout,"NO WAY\n");
+            fprintf(stdout, "NO WAY\n");
         }
         queue_destroy(queue);
         free_array(ext);

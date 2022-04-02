@@ -2,30 +2,13 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "queue.h"
+#include "types.h"
 
-void failf(int i)
+static void fail(int i)
 {
     fprintf(stderr, "ERROR %i\n", i);
     exit(EXIT_FAILURE);
 }
-
-typedef struct array_with_length
-{
-    size_t *array;
-    size_t length;
-} array_with_length_t;
-
-typedef struct coord
-{
-    size_t len;
-    array_with_length_t coord;
-} coord_t;
-
-typedef struct queue
-{
-    size_t front, back, cap, size;
-    coord_t **array;
-} queue_t;
 
 queue_t* queue_initialize(size_t cap)
 {
@@ -36,9 +19,22 @@ queue_t* queue_initialize(size_t cap)
     queue->array = (coord_t **)calloc(cap, sizeof(coord_t *));
     if(queue->array == NULL)
     {
-        failf(0);
+        return NULL;
     }
     return queue;
+}
+
+void queue_destroy(queue_t *queue)
+{
+    coord_t* temp;
+    while (!is_empty(queue))
+    {
+        temp = pop(queue);
+        free(temp->coord.array);
+        free(temp);
+    }
+    free(queue->array);
+    free(queue);
 }
 
 queue_t* queue_resize(queue_t* queue)
@@ -46,7 +42,8 @@ queue_t* queue_resize(queue_t* queue)
     coord_t **narr = (coord_t **)realloc(queue->array, (queue->cap + 2) * sizeof(coord_t *));
     if (narr == NULL)
     {
-        failf(0);
+        queue_destroy(queue);
+        return NULL;
     }
     queue->cap += 2;
     queue->array = narr;
@@ -77,6 +74,10 @@ queue_t *add(queue_t* queue, coord_t *item)
     if (is_full(queue))
     {
         queue = queue_resize(queue);
+        if(!queue)
+        {
+            return NULL;
+        }
     }
     queue->back = (queue->back + 1) % queue->cap;
     queue->array[queue->back] = item;
@@ -88,78 +89,10 @@ coord_t *pop(queue_t *queue)
 {
     if (is_empty(queue))
     {
-        failf(6);
+        return NULL;
     }
     coord_t *res = (queue->array[queue->front]);
     queue->front = (queue->front + 1) % queue->cap;
     queue->size = queue->size - 1;
     return res;
 }
-
-void queue_destroy(queue_t *queue)
-{
-    coord_t* temp;
-    while (!is_empty(queue))
-    {
-        temp = pop(queue);
-        free(temp->coord.array);
-        free(temp);
-    }
-    free(queue->array);
-    free(queue);
-}
-
-/* testy */
-
-// void print_coord(coord_t r, size_t dim)
-// {
-//     printf("%zu\n", r.len);
-//     for (size_t i = 0; i < dim; i++)
-//     {
-//         printf("%zu", r.coord[i]);
-//         printf(" ");
-//     }
-//     printf("\n");
-// }
-
-// coord_t *gen_coor(size_t dupa, size_t dim)
-// {
-//     coord_t *a = (coord_t *)malloc(sizeof(coord_t));
-//     a->len = 0;
-//     a->coord = (size_t *)calloc(dim, sizeof(size_t));
-//     for (size_t i = 0; i < dim; i++)
-//     {
-//         a->coord[i] = dupa;
-//     }
-//     return a;
-// }
-
-// int main()
-// {
-//     size_t dim = 6;
-//     queue_t *queue = queue_initialize(3);
-//     for (int i = 0; i < 777; i++)
-//     {
-//         coord_t *w = gen_coor(100 * i, dim);
-//         add(queue, w);
-//         coord_t *f = gen_coor(100 * i+1, dim);
-//         add(queue, f);
-//         coord_t *y = gen_coor(100 * i+2, dim);
-//         add(queue, y);
-//         /*
-//         coord_t *e = pop(queue);
-//         print_coord(*e, dim);
-//         free(e->coord);
-//         free(e);*/
-//     }
-//         for (int i = 0; i < 77; i++)
-//     {
-//         coord_t *e = pop(queue);
-//         print_coord(*e, dim);
-//         free(e->coord);
-//         free(e);
-//     }
-
-//     printf("%zu\n", queue->cap);
-//     queue_destroy(queue);
-// }

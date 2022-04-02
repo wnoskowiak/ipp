@@ -10,22 +10,6 @@
 zwykły bfs działa, ale trzeba nie spierdolić
 labirynt można trzymać jako tablice intów
 */
-
-// static void printBits(size_t const size, void const * const ptr)
-// {
-//     unsigned char *b = (unsigned char*) ptr;
-//     unsigned char byte;
-//     int i, j;
-    
-//     for (i = size-1; i >= 0; i--) {
-//         for (j = 7; j >= 0; j--) {
-//             byte = (b[i] >> j) & 1;
-//             printf("%u", byte);
-//         }
-//     }
-//     puts("");
-// }
-
 typedef struct settings
 {
 	size_t *dimmaxes;
@@ -115,9 +99,7 @@ void put_in_array(arr_t *array, indx_t *index)
 
 bool put(arr_t *array, size_t *coords)
 {
-	//printf("here we go again\n");
 	indx_t *tmp = to_internal_type(array, coords);
-	//printf("fuck my fucking life\n");
 	if (!tmp)
 	{
 		return false;
