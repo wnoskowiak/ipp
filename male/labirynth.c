@@ -9,21 +9,6 @@
 #include "queue.h"
 #include "bitarray.h"
 
-static void printBits(size_t const size, void const * const ptr)
-{
-    unsigned char *b = (unsigned char*) ptr;
-    unsigned char byte;
-    int i, j;
-    
-    for (i = size-1; i >= 0; i--) {
-        for (j = 7; j >= 0; j--) {
-            byte = (b[i] >> j) & 1;
-            printf("%u", byte);
-        }
-    }
-    puts("");
-}
-
 typedef struct indx
 {
     size_t cell;
@@ -78,11 +63,10 @@ bool compare_coords(array_with_length_t a, array_with_length_t b)
     bool res = true;
     for (size_t i = 0; i < a.length; i++)
     {
-        // printf("%zu\n",(a.array)[i]);
         if ((a.array)[i] != (b.array)[i])
         {
             res = false;
-            // break;
+            break;
         }
     }
     return res;
@@ -105,35 +89,42 @@ size_t get_labirynth_size(array_with_length_t *dimentions)
     return res;
 }
 
-arr_t *parce_R(char *token, array_with_length_t *dimentions)
+arr_t *parce_R(char *token, array_with_length_t *dimentions, bool* memfail)
 {
-    const char sep[2] = " ";
     long unsigned int res[5];
     int i;
-    if (token++ != NULL)
+    if (token + 1 != NULL)
     {
-        sscanf(token, "%lu", &res[0]);
-        i = 1;
+        if (token[1] != '\0')
+        {
+            sscanf(token, "R%lu", &res[0]);
+            i = 1;
+        }
+        else
+        {
+            i = 0;
+        }
     }
     else
     {
         i = 0;
     }
-    token = strtok(NULL, sep);
+    token = strtok(NULL, " \n\t");
     while (token != NULL)
     {
         sscanf(token, "%lu", &res[i]);
         i++;
-        token = strtok(NULL, sep);
+        token = strtok(NULL, " \n\t");
     }
     if (i < 5)
     {
-        fail(4);
+        return NULL;
     }
-    long unsigned int* w = (long unsigned int*)calloc(res[3],sizeof(long unsigned int));
-    if(w == NULL)
+    long unsigned int *w = (long unsigned int *)calloc(res[3] + 1, sizeof(long unsigned int));
+    if (w == NULL)
     {
-        fail(0);
+        *memfail = true;
+        return NULL;
     }
     w[0] = res[4];
     for (long unsigned int i = 1; i <= res[3]; i++)
@@ -141,6 +132,7 @@ arr_t *parce_R(char *token, array_with_length_t *dimentions)
         w[i] = (res[0] * w[i - 1] + res[1]) % res[2];
     }
     size_t size = get_labirynth_size(dimentions);
+    //tu dopisać free
     for (long unsigned int i = 0; i <= res[3]; i++)
     {
         w[i] = w[i] % size;
@@ -172,17 +164,17 @@ arr_t *parce_R(char *token, array_with_length_t *dimentions)
     return walls;
 }
 
-arr_t * parce_hex(char *token, array_with_length_t *dimentions)
+arr_t *parce_hex(char *token, array_with_length_t *dimentions)
 {
     errno = 0;
-    char * temp = token;
+    char *temp = token;
     unsigned long long number = strtoull(token, NULL, 0);
-    
-    if(errno != 0)
+
+    if (errno != 0)
     {
         fail(4);
     }
-    else if(number == 0)
+    else if (number == 0)
     {
         unsigned long long safety = strtoull(&temp[2], NULL, 16);
         if (safety != 0)
@@ -193,46 +185,88 @@ arr_t * parce_hex(char *token, array_with_length_t *dimentions)
     size_t size = get_labirynth_size(dimentions);
     size_t bit_num = (size_t)((log((ULLONG_MAX >> 1) + 1) / log(2)) + 1);
     arr_t *walls = initialize_array(dimentions);
-    for(size_t i = 0;i<bit_num && i<size && number >0; i++)
+    for (size_t i = 0; i < bit_num && i < size && number > 0; i++)
     {
-        if(number % 2 == 1)
+        if (number % 2 == 1)
         {
             indx_t index;
             index.cell = (i) / (walls->settings->mx);
             index.rem = (i) % (walls->settings->mx);
             put_in_array(walls, &index);
         }
-        number = number/2;
+        number = number / 2;
     }
     return walls;
 }
 
-array_with_length_t *line_to_array(char *str, int line_number)
+array_with_length_t *line_to_array(char *str, int line_number, bool *memfail)
 {
-    const char s[2] = " ";
     char *token;
-    token = strtok(str, s);
+    token = strtok(str," \n\t");
     queue_t *dupa = queue_initialize(1);
+    if (!dupa)
+    {
+        return NULL;
+    }
     while (token != NULL)
     {
         size_t len = 0;
         sscanf(token, "%zu", &len);
         coord_t *a = (coord_t *)malloc(sizeof(coord_t));
+        if (!a)
+        {
+            queue_destroy(dupa);
+            *memfail = true;
+            return NULL;
+        }
         a->coord.length = 1;
         a->coord.array = (size_t *)malloc(sizeof(size_t));
+        if (!a->coord.array)
+        {
+            queue_destroy(dupa);
+            free(a);
+            *memfail = true;
+            return NULL;
+        }
         *(a->coord.array) = len;
         dupa = add(dupa, a);
-        token = strtok(NULL, s);
+        token = strtok(NULL," \n\t");
     }
     array_with_length_t *res = (array_with_length_t *)malloc(sizeof(array_with_length_t));
+    if (!res)
+    {
+        queue_destroy(dupa);
+        *memfail = true;
+        return NULL;
+    }
     res->length = dupa->size;
     res->array = (size_t *)calloc(res->length, sizeof(size_t));
+    if (!res->array)
+    {
+        queue_destroy(dupa);
+        free(res);
+        *memfail = true;
+        return NULL;
+    }
     for (size_t i = 0; i < res->length; i++)
     {
         coord_t *fuck = pop(dupa);
+        if (!fuck)
+        {
+            queue_destroy(dupa);
+            free(res->array);
+            free(res);
+            return NULL;
+        }
         if (*(fuck->coord.array) == (size_t)0)
         {
-            fail(line_number);
+            printf("perhaps\n");
+            queue_destroy(dupa);
+            free(fuck->coord.array);
+            free(fuck);
+            free(res->array);
+            free(res);
+            return NULL;
         }
         else
         {
@@ -247,64 +281,39 @@ array_with_length_t *line_to_array(char *str, int line_number)
 
 queue_t *add_neighbours(queue_t *queue, arr_t *wall, arr_t *visited, array_with_length_t *coord, size_t dist)
 {
-    // for (size_t j = 0; j < coord->length; j++)
-    // {
-    //     printf("%zu ", coord->array[j]);
-    // }
-    // printf("\n\n");
     for (size_t i = 0; i < coord->length; i++)
     {
-        // printf("begin\n");
-        size_t *new = (size_t *)calloc(coord->length, sizeof(size_t));
-        for (size_t j = 0; j < coord->length; j++)
+        for (int t = -1; t <= 1; t = t + 2)
         {
-            new[j] = coord->array[j];
+            size_t *new = (size_t *)calloc(coord->length, sizeof(size_t));
+            if (!new)
+            {
+                return NULL;
+            }
+            for (size_t j = 0; j < coord->length; j++)
+            {
+                new[j] = coord->array[j];
+            }
+            new[i] = new[i] + t;
+            coord_t *nelem = (coord_t *)malloc(sizeof(coord_t));
+            if (!nelem)
+            {
+                free(new);
+                return NULL;
+            }
+            nelem->len = dist;
+            nelem->coord.length = coord->length;
+            nelem->coord.array = new;
+            if (new[i] <= visited->settings->dimmaxes[i] && new[i] > 0 && !get(wall, new) && !get(visited, new))
+            {
+                queue = add(queue, nelem);
+            }
+            else
+            {
+                free(nelem->coord.array);
+                free(nelem);
+            }
         }
-        new[i]++;
-        // for (size_t j = 0; j < coord->length; j++)
-        // {
-        //     printf("%zu ", new[j]);
-        // }
-        // printf("\n");
-        coord_t *nelem = (coord_t *)malloc(sizeof(coord_t));
-        nelem->len = dist;
-        nelem->coord.length = coord->length;
-        nelem->coord.array = new;
-        if (new[i] <= visited->settings->dimmaxes[i] && !get(wall, new) && !get(visited, new))
-        {
-            queue = add(queue, nelem);
-        }
-        else
-        {
-            free(nelem->coord.array);
-            free(nelem);
-        }
-        // wtf
-        size_t *new2 = (size_t *)calloc(coord->length, sizeof(size_t));
-        for (size_t j = 0; j < coord->length; j++)
-        {
-            new2[j] = coord->array[j];
-        }
-        new2[i]--;
-        // for (size_t j = 0; j < coord->length; j++)
-        // {
-        //     printf("%zu ", new2[j]);
-        // }
-        // printf("\n");
-        coord_t *nelem2 = (coord_t *)malloc(sizeof(coord_t));
-        nelem2->len = dist;
-        nelem2->coord.length = coord->length;
-        nelem2->coord.array = new2;
-        if (new2[i] > 0 && !get(wall, new2) && !get(visited, new2))
-        {
-            queue = add(queue, nelem2);
-        }
-        else
-        {
-            free(nelem2->coord.array);
-            free(nelem2);
-        }
-        // printf("end\n");
     }
     return queue;
 }
@@ -325,23 +334,57 @@ int main()
             free(line);
             fail(1);
         }
-        array_with_length_t *dimentions = line_to_array(line, 1);
+        bool memfail = false;
+        array_with_length_t *dimentions = line_to_array(line, 1, &memfail);
+        if (!dimentions)
+        {
+            free(line);
+            if (memfail)
+            {
+                fail(0);
+            }
+            else
+            {
+                fail(1);
+            }
+        }
         arr_t *visited = initialize_array(dimentions);
-
+        if (!visited)
+        {
+            free(line);
+            fail(0);
+        }
         // wczytaj wejście do labiryntu
         read = getline(&line, &len, stdin);
         if ((int)read == -1)
         {
             free(line);
             free_array(dimentions);
+            destroy_array(visited);
             fail(2);
         }
-        array_with_length_t *entry = line_to_array(line, 2);
+        memfail = false;
+        array_with_length_t *entry = line_to_array(line, 2, &memfail);
+        if (!entry)
+        {
+            free(line);
+            free_array(dimentions);
+            destroy_array(visited);
+            if (memfail)
+            {
+                fail(0);
+            }
+            else
+            {
+                fail(1);
+            }
+        }
         if (entry->length != dimentions->length)
         {
             free(line);
             free_array(entry);
             free_array(dimentions);
+            destroy_array(visited);
             fail(2);
         }
         // wczytaj wyjście z labiryntu
@@ -351,15 +394,33 @@ int main()
             free(line);
             free_array(entry);
             free_array(dimentions);
+            destroy_array(visited);
             fail(3);
         }
-        array_with_length_t *ext = line_to_array(line, 3);
+        memfail = false;
+        array_with_length_t *ext = line_to_array(line, 3, &memfail);
+        if (!ext)
+        {
+            free(line);
+            free_array(entry);
+            free_array(dimentions);
+            destroy_array(visited);
+            if (memfail)
+            {
+                fail(0);
+            }
+            else
+            {
+                fail(3);
+            }
+        }
         if (ext->length != entry->length)
         {
             free(line);
             free_array(entry);
             free_array(dimentions);
             free_array(ext);
+            destroy_array(visited);
             fail(3);
         }
         //  wczytywanie ścian
@@ -368,6 +429,10 @@ int main()
         if ((int)read == -1)
         {
             free(line);
+            free_array(entry);
+            free_array(dimentions);
+            free_array(ext);
+            destroy_array(visited);
             fail(4);
         }
         const char s[2] = " ";
@@ -379,35 +444,54 @@ int main()
         }
         else if (token[0] == '0')
         {
-            if (token+1 != NULL)
+            if (token + 1 != NULL)
             {
                 if (token[1] == 'x')
                 {
-                   walls = parce_hex(token, dimentions);
+                    walls = parce_hex(token, dimentions);
                 }
                 else
                 {
                     free(line);
+                    free_array(entry);
+                    free_array(dimentions);
+                    free_array(ext);
+                    destroy_array(visited);
                     fail(4);
                 }
             }
             else
             {
                 free(line);
+                free_array(entry);
+                free_array(dimentions);
+                free_array(ext);
+                destroy_array(visited);
                 fail(4);
             }
         }
         else
         {
             free(line);
+            free_array(entry);
+            free_array(dimentions);
+            free_array(ext);
+            destroy_array(visited);
             fail(4);
         }
         read = getline(&line, &len, stdin);
         if ((int)read != -1)
         {
             free(line);
+            free_array(entry);
+            free_array(dimentions);
+            free_array(ext);
+            destroy_array(visited);
             fail(5);
         }
+
+        // jeśli program dotrze tu to znaczy że dane są poprawnie wpisane. teraz pora na zaaplikowanie bfsa
+
         queue_t *queue = queue_initialize(7); // zmienić to kurwa potem
         if (!get(walls, entry->array))
         {
@@ -418,7 +502,6 @@ int main()
         }
         else
         {
-            printf("dupa\n");
             free(entry->array);
         }
         bool done = false;
@@ -427,14 +510,26 @@ int main()
             coord_t *suspect = pop(queue);
             if (compare_coords(suspect->coord, *ext))
             {
-                printf("oh fuck\n");
-                printf("%zu\n", suspect->len);
+                fprintf(stdout,"%zu\n", suspect->len);
                 done = true;
             }
             else
             {
                 put(visited, suspect->coord.array);
                 queue = add_neighbours(queue, walls, visited, &suspect->coord, suspect->len + 1);
+                if (!queue)
+                {
+                    queue_destroy(queue);
+                    free(line);
+                    free_array(entry);
+                    free_array(dimentions);
+                    free_array(ext);
+                    destroy_array(visited);
+                    destroy_array(walls);
+                    free(suspect->coord.array);
+                    free(suspect);
+                    fail(0);
+                }
             }
             free(suspect->coord.array);
             free(suspect);
@@ -445,7 +540,7 @@ int main()
         }
         if (!done)
         {
-            printf("NO WAY\n");
+            fprintf(stdout,"NO WAY\n");
         }
         queue_destroy(queue);
         free_array(ext);
