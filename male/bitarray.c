@@ -97,7 +97,7 @@ bool put(arr_t *array, size_t *coords)
 }
 
 //funkcja pomocnicza odczytująca watrość bitu w tablicy na podstawie inputu w formacie {cell - komórka w tabeli; res -> bit w tej komórce}
-bool get_from_array(arr_t *array, indx_t *index)
+static bool get_from_array(arr_t *array, indx_t *index)
 {
 	return((array->array[index->cell] & ((size_t)1 << (index->rem))));
 }
