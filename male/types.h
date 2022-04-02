@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+/*deklaracje typów i struktur wykorzystywanych przez napisane moduły*/
+
 #ifndef TYPES_H_
 #define TYPES_H_
 
