@@ -5,8 +5,24 @@
 #include <limits.h>
 #include <stdint.h>
 #include <string.h>
+#include <errno.h>
 #include "queue.h"
 #include "bitarray.h"
+
+static void printBits(size_t const size, void const * const ptr)
+{
+    unsigned char *b = (unsigned char*) ptr;
+    unsigned char byte;
+    int i, j;
+    
+    for (i = size-1; i >= 0; i--) {
+        for (j = 7; j >= 0; j--) {
+            byte = (b[i] >> j) & 1;
+            printf("%u", byte);
+        }
+    }
+    puts("");
+}
 
 typedef struct indx
 {
@@ -119,7 +135,6 @@ arr_t *parce_R(char *token, array_with_length_t *dimentions)
     {
         fail(0);
     }
-    //printf("tbh it worked longer than expected\n");
     w[0] = res[4];
     for (long unsigned int i = 1; i <= res[3]; i++)
     {
@@ -153,13 +168,43 @@ arr_t *parce_R(char *token, array_with_length_t *dimentions)
             put_in_array(walls, &index);
         }
     }
+    free(w);
     return walls;
 }
 
-void parce_hex(char *token)
+arr_t * parce_hex(char *token, array_with_length_t *dimentions)
 {
-    size_t number = strtoul(token, NULL, 16);
-    printf("%zu\n", number);
+    errno = 0;
+    char * temp = token;
+    unsigned long long number = strtoull(token, NULL, 0);
+    
+    if(errno != 0)
+    {
+        fail(4);
+    }
+    else if(number == 0)
+    {
+        unsigned long long safety = strtoull(&temp[2], NULL, 16);
+        if (safety != 0)
+        {
+            fail(4);
+        }
+    }
+    size_t size = get_labirynth_size(dimentions);
+    size_t bit_num = (size_t)((log((ULLONG_MAX >> 1) + 1) / log(2)) + 1);
+    arr_t *walls = initialize_array(dimentions);
+    for(size_t i = 0;i<bit_num && i<size && number >0; i++)
+    {
+        if(number % 2 == 1)
+        {
+            indx_t index;
+            index.cell = (i) / (walls->settings->mx);
+            index.rem = (i) % (walls->settings->mx);
+            put_in_array(walls, &index);
+        }
+        number = number/2;
+    }
+    return walls;
 }
 
 array_with_length_t *line_to_array(char *str, int line_number)
@@ -269,7 +314,7 @@ int main()
     char *line = NULL;
     size_t len = 0;
     size_t read;
-    
+
     if ((fseek(stdin, 0, SEEK_END), ftell(stdin)) > 0)
     {
         rewind(stdin);
@@ -334,12 +379,11 @@ int main()
         }
         else if (token[0] == '0')
         {
-            if (token++ != NULL)
+            if (token+1 != NULL)
             {
-                if (token[0] == 'x')
+                if (token[1] == 'x')
                 {
-                    token++;
-                    parce_hex(token);
+                   walls = parce_hex(token, dimentions);
                 }
                 else
                 {
@@ -374,6 +418,7 @@ int main()
         }
         else
         {
+            printf("dupa\n");
             free(entry->array);
         }
         bool done = false;
