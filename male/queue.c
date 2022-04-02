@@ -4,12 +4,6 @@
 #include "queue.h"
 #include "types.h"
 
-static void fail(int i)
-{
-    fprintf(stderr, "ERROR %i\n", i);
-    exit(EXIT_FAILURE);
-}
-
 queue_t* queue_initialize(size_t cap)
 {
     queue_t* queue = (queue_t*)malloc(sizeof(queue_t));
